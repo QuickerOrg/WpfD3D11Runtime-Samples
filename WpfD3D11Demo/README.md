@@ -22,30 +22,34 @@ dotnet publish -c Release -r win-x64 --self-contained false `
 # ARM64: change RID to win-arm64 and use separate build/output directories.
 ```
 
-默认页面保留渐变、旋转、阴影、半透明和实际模块诊断。Emoji 页面展示 14/28/48 DIP 的单码点、肤色、ZWJ（👩‍❤️‍👨、🧑🏽‍💻、家庭）、彩虹旗、中英文混排，以及连续的 1→2→1 缩放动画。窗口可调整大小，内容可滚动。窗口不请求激活；普通模式关闭窗口退出，selftest 约六秒自行关闭。
+不带参数运行打开主对话框：列出“渲染演示”“彩色 Emoji（开启）”“彩色 Emoji（关闭）”三项测试，并显示当前加载的 wpfgfx / d3d11 版本；点击任一项以新进程打开对应窗口，可同时打开多个对比。也可用 Visual Studio 打开仓库根目录的 `WpfD3D11Runtime-Samples.slnx` 直接 F5。
 
-The default scene retains gradients, rotation, shadows, transparency and diagnostics. The Emoji scene covers the sequences above at 14/28/48 DIP, mixed Chinese/English text, and a repeating 1→2→1 scale animation. Resize and scroll as needed. Selftest windows close themselves after about six seconds.
+Run without arguments to open the main dialog with three tests (rendering demo, color Emoji ON, color Emoji OFF) and the loaded wpfgfx/d3d11 versions; each button starts the test in a new process. Open `WpfD3D11Runtime-Samples.slnx` at the repository root in Visual Studio to run it with F5.
+
+| 参数 / Arguments | 打开 / Opens |
+| --- | --- |
+| （无 / none） | 主对话框 / Main dialog |
+| `--demo` | 渲染演示 / Rendering demo |
+| `--emoji` 或 `--emoji --color=on` | 彩色 Emoji 开启 / Color Emoji ON |
+| `--emoji --color=off` | 彩色 Emoji 关闭 / Color Emoji OFF |
+
+渲染演示页面保留渐变、旋转、阴影、半透明和实际模块诊断。Emoji 页面展示 14/28/48 DIP 的单码点、肤色、ZWJ（👩‍❤️‍👨、🧑🏽‍💻、家庭）、彩虹旗、中英文混排，以及连续的 1→2→1 缩放动画。窗口可调整大小，内容可滚动。窗口不请求激活；普通模式关闭窗口退出，selftest 约六秒自行关闭。
+
+The rendering demo retains gradients, rotation, shadows, transparency and diagnostics. The Emoji scene covers the sequences above at 14/28/48 DIP, mixed Chinese/English text, and a repeating 1→2→1 scale animation. Resize and scroll as needed. Selftest windows close themselves after about six seconds.
 
 ## 彩色开/关对照 / Color comparison
 
 ```powershell
-# 选择窗口：两个按钮分别以新进程打开彩色开启/关闭页面，可同时打开对比
-# Chooser: two buttons, each opens the color ON/OFF page in a new process
 ./artifacts/package-x64/WpfD3D11Demo.exe --emoji
-# 直接打开某一种 / Open one directly
-./artifacts/package-x64/WpfD3D11Demo.exe --emoji --color=on
 ./artifacts/package-x64/WpfD3D11Demo.exe --emoji --color=off
+# --emoji --color=on is equivalent to --emoji.
 ```
 
-`--emoji` 不带 `--color` 时：交互运行显示选择窗口；与 `--selftest` 同用时仍等同 `--color=on`。
+`Main` 在进入禁止内联的 WPF 启动方法前调用 `Environment.SetEnvironmentVariable("QUICKER_WPF_COLOR_GLYPHS", "1")`；关闭方式设为 `"0"`。入口以原生 `GetEnvironmentVariableW` 复核，并确认设置前后 wpfgfx 均未加载。原生代码在首次 `DrawGlyphRun` 的 `Enabled()` 中读取并缓存进程环境，因此本设置先于读取。需要分别启动新进程；主对话框与渲染演示页面设为关闭。
 
-Without `--color`, `--emoji` shows the chooser when run interactively; with `--selftest` it still means `--color=on`.
+`Main` sets the process environment before entering the non-inlined WPF startup method, verifies the native environment, and verifies wpfgfx has not loaded. Native `Enabled()` reads and caches it on the first glyph draw. Start a new process for each comparison; the main dialog and rendering demo disable color.
 
-`Main` 在进入禁止内联的 WPF 启动方法前调用 `Environment.SetEnvironmentVariable("QUICKER_WPF_COLOR_GLYPHS", "1")`；关闭方式设为 `"0"`。入口以原生 `GetEnvironmentVariableW` 复核，并确认设置前后 wpfgfx 均未加载。原生代码在首次 `DrawGlyphRun` 的 `Enabled()` 中读取并缓存进程环境，因此本设置先于读取。需要分别启动新进程；默认非 Emoji 页面设为关闭。
-
-`Main` sets the process environment before entering the non-inlined WPF startup method, verifies the native environment, and verifies wpfgfx has not loaded. Native `Enabled()` reads and caches it on the first glyph draw. Start a new process for each comparison; the default scene disables color.
-
-运行时仍默认关闭彩色；`--color=on`（或选择窗口的开启按钮）显式开启它。以下可选开关也须在启动前确定：
+运行时仍默认关闭彩色；`--emoji`（或主对话框的开启按钮）显式开启它。以下可选开关也须在启动前确定：
 
 | 开关 / Switch | 说明 / Meaning |
 | --- | --- |

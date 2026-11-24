@@ -8,6 +8,10 @@ Samples for [WpfD3D11Runtime](https://www.nuget.org/packages/WpfD3D11Runtime), a
 | --- | --- |
 | [WpfD3D11Demo](WpfD3D11Demo/README.md) | 渐变、旋转、阴影、半透明与模块诊断；`--emoji` 彩色 Emoji 页面；自动 selftest / Gradients, rotation, shadows, transparency, module diagnostics; `--emoji` color Emoji scene; automated selftest |
 
+用 Visual Studio 打开 `WpfD3D11Runtime-Samples.slnx` 后直接运行，会出现主对话框，可从中打开各项测试；或在 `WpfD3D11Demo` 目录执行 `dotnet run -r win-x64`。
+
+Open `WpfD3D11Runtime-Samples.slnx` in Visual Studio and run it to get the main dialog, or run `dotnet run -r win-x64` in `WpfD3D11Demo`.
+
 运行时源码：[QuickerOrg/wpf](https://github.com/QuickerOrg/wpf) 分支 `quicker/d3d11-facade`。
 
 Runtime source: [QuickerOrg/wpf](https://github.com/QuickerOrg/wpf), branch `quicker/d3d11-facade`.

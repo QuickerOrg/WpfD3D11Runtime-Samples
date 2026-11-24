@@ -29,12 +29,14 @@ internal static class Program
     {
         string? output = null;
         var emoji = false;
+        var demo = false;
         bool? color = null;
         string? baseline = null;
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
             {
+                case "--demo": demo = true; break;
                 case "--emoji": emoji = true; break;
                 case "--color=on": color = true; break;
                 case "--color=off": color = false; break;
@@ -44,8 +46,9 @@ internal static class Program
             }
         }
         if (!emoji && (color.HasValue || baseline is not null)) return 2;
-        // 交互模式下只给 --emoji：显示选择窗口，每个按钮各启动一个新进程（彩色开关须在 WPF 加载前设定）。
-        if (emoji && color is null && output is null) return Choose();
+        if (demo && emoji) return 2;
+        // 无参数交互运行：显示主对话框，每个测试各以新进程启动（彩色开关须在 WPF 加载前设定）。
+        if (args.Length == 0) return Launcher();
         var enabled = emoji && (color ?? true);
         if (output is not null && enabled && baseline is null) return 2;
         if (output is not null) Directory.CreateDirectory(Path.GetDirectoryName(output)!);
@@ -85,25 +88,35 @@ internal static class Program
     private static extern uint GetEnvironmentVariable(string name, [Out] char[] value, int size);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int Choose()
+    private static int Launcher()
     {
         var app = new Application();
-        var panel = new StackPanel { Margin = new Thickness(24) };
+        var panel = new StackPanel { Margin = new Thickness(24), Width = 420 };
         panel.Children.Add(new TextBlock
         {
-            Text = "选择要打开的 Emoji 页面 / Choose an Emoji view", FontSize = 15,
-            Margin = new Thickness(0, 0, 0, 16)
+            Text = ExpectPrivate ? "WpfD3D11Runtime 测试" : "官方 WPF 对照测试",
+            FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4)
         });
-        foreach (var (label, argument) in new[]
+        panel.Children.Add(new TextBlock
         {
-            ("彩色 Emoji（开启） / Color ON", "--emoji --color=on"),
-            ("黑白 Emoji（关闭） / Color OFF", "--emoji --color=off")
+            Text = "选择要打开的测试；每项在新窗口（新进程）中运行，可同时打开多个对比。\n" +
+                   "Each test opens in a new window (new process); open several to compare.",
+            Foreground = Brushes.DimGray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16)
+        });
+        foreach (var (title, detail, argument) in new[]
+        {
+            ("渲染演示 / Rendering demo", "渐变、旋转、阴影、半透明与模块诊断", "--demo"),
+            ("彩色 Emoji（开启） / Color Emoji ON", "单码点、肤色、ZWJ、彩虹旗、混排与缩放动画", "--emoji --color=on"),
+            ("彩色 Emoji（关闭） / Color Emoji OFF", "同一页面，运行时默认的黑白字形，用于对照", "--emoji --color=off")
         })
         {
+            var content = new StackPanel();
+            content.Children.Add(new TextBlock { Text = title, FontSize = 15, FontWeight = FontWeights.SemiBold });
+            content.Children.Add(new TextBlock { Text = detail, FontSize = 12, Foreground = Brushes.DimGray });
             var button = new Button
             {
-                Content = label, FontSize = 15, Padding = new Thickness(16, 8, 16, 8),
-                Margin = new Thickness(0, 0, 0, 10)
+                Content = content, HorizontalContentAlignment = HorizontalAlignment.Left,
+                Padding = new Thickness(14, 8, 14, 8), Margin = new Thickness(0, 0, 0, 10)
             };
             button.Click += (_, _) => Process.Start(new ProcessStartInfo(Environment.ProcessPath!, argument)
             {
@@ -111,16 +124,27 @@ internal static class Program
             });
             panel.Children.Add(button);
         }
-        panel.Children.Add(new TextBlock
+        var modules = new TextBlock
         {
-            Text = "每次点击启动一个新窗口，可同时打开两种进行对比。\nEach click opens a new window; open both to compare.",
-            Foreground = Brushes.Gray, TextWrapping = TextWrapping.Wrap
-        });
+            FontFamily = new FontFamily("Consolas"), FontSize = 11, Foreground = Brushes.Gray,
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0)
+        };
+        panel.Children.Add(modules);
         var window = new Window
         {
-            Title = "WpfD3D11Demo — Emoji", Content = panel,
-            SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.NoResize,
+            Title = "WpfD3D11Demo", Content = panel,
+            SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.CanMinimize,
             WindowStartupLocation = WindowStartupLocation.CenterScreen
+        };
+        window.ContentRendered += (_, _) =>
+        {
+            var lines = Process.GetCurrentProcess().Modules.Cast<ProcessModule>()
+                .Where(m => m.ModuleName.Equals("wpfgfx_cor3.dll", StringComparison.OrdinalIgnoreCase)
+                         || m.ModuleName.Equals("d3d11.dll", StringComparison.OrdinalIgnoreCase)
+                         || m.ModuleName.Equals("d3d9.dll", StringComparison.OrdinalIgnoreCase))
+                .Select(m => m.FileVersionInfo)
+                .Select(v => $"{Path.GetFileName(v.FileName)} {v.FileMajorPart}.{v.FileMinorPart}.{v.FileBuildPart}.{v.FilePrivatePart}");
+            modules.Text = string.Join("\n", lines);
         };
         return app.Run(window);
     }
