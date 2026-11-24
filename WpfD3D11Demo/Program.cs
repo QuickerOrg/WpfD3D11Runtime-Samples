@@ -44,6 +44,8 @@ internal static class Program
             }
         }
         if (!emoji && (color.HasValue || baseline is not null)) return 2;
+        // 交互模式下只给 --emoji：显示选择窗口，每个按钮各启动一个新进程（彩色开关须在 WPF 加载前设定）。
+        if (emoji && color is null && output is null) return Choose();
         var enabled = emoji && (color ?? true);
         if (output is not null && enabled && baseline is null) return 2;
         if (output is not null) Directory.CreateDirectory(Path.GetDirectoryName(output)!);
@@ -81,6 +83,47 @@ internal static class Program
     private static extern nint GetModuleHandle(string name);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetEnvironmentVariableW")]
     private static extern uint GetEnvironmentVariable(string name, [Out] char[] value, int size);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int Choose()
+    {
+        var app = new Application();
+        var panel = new StackPanel { Margin = new Thickness(24) };
+        panel.Children.Add(new TextBlock
+        {
+            Text = "选择要打开的 Emoji 页面 / Choose an Emoji view", FontSize = 15,
+            Margin = new Thickness(0, 0, 0, 16)
+        });
+        foreach (var (label, argument) in new[]
+        {
+            ("彩色 Emoji（开启） / Color ON", "--emoji --color=on"),
+            ("黑白 Emoji（关闭） / Color OFF", "--emoji --color=off")
+        })
+        {
+            var button = new Button
+            {
+                Content = label, FontSize = 15, Padding = new Thickness(16, 8, 16, 8),
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            button.Click += (_, _) => Process.Start(new ProcessStartInfo(Environment.ProcessPath!, argument)
+            {
+                UseShellExecute = false
+            });
+            panel.Children.Add(button);
+        }
+        panel.Children.Add(new TextBlock
+        {
+            Text = "每次点击启动一个新窗口，可同时打开两种进行对比。\nEach click opens a new window; open both to compare.",
+            Foreground = Brushes.Gray, TextWrapping = TextWrapping.Wrap
+        });
+        var window = new Window
+        {
+            Title = "WpfD3D11Demo — Emoji", Content = panel,
+            SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen
+        };
+        return app.Run(window);
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int Run(string? output, bool emoji, bool color, string? baseline, JsonObject bootstrap)

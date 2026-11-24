@@ -29,16 +29,23 @@ The default scene retains gradients, rotation, shadows, transparency and diagnos
 ## 彩色开/关对照 / Color comparison
 
 ```powershell
+# 选择窗口：两个按钮分别以新进程打开彩色开启/关闭页面，可同时打开对比
+# Chooser: two buttons, each opens the color ON/OFF page in a new process
 ./artifacts/package-x64/WpfD3D11Demo.exe --emoji
+# 直接打开某一种 / Open one directly
+./artifacts/package-x64/WpfD3D11Demo.exe --emoji --color=on
 ./artifacts/package-x64/WpfD3D11Demo.exe --emoji --color=off
-# --emoji --color=on is equivalent to --emoji.
 ```
+
+`--emoji` 不带 `--color` 时：交互运行显示选择窗口；与 `--selftest` 同用时仍等同 `--color=on`。
+
+Without `--color`, `--emoji` shows the chooser when run interactively; with `--selftest` it still means `--color=on`.
 
 `Main` 在进入禁止内联的 WPF 启动方法前调用 `Environment.SetEnvironmentVariable("QUICKER_WPF_COLOR_GLYPHS", "1")`；关闭方式设为 `"0"`。入口以原生 `GetEnvironmentVariableW` 复核，并确认设置前后 wpfgfx 均未加载。原生代码在首次 `DrawGlyphRun` 的 `Enabled()` 中读取并缓存进程环境，因此本设置先于读取。需要分别启动新进程；默认非 Emoji 页面设为关闭。
 
 `Main` sets the process environment before entering the non-inlined WPF startup method, verifies the native environment, and verifies wpfgfx has not loaded. Native `Enabled()` reads and caches it on the first glyph draw. Start a new process for each comparison; the default scene disables color.
 
-运行时仍默认关闭彩色；`--emoji` 显式开启它。以下可选开关也须在启动前确定：
+运行时仍默认关闭彩色；`--color=on`（或选择窗口的开启按钮）显式开启它。以下可选开关也须在启动前确定：
 
 | 开关 / Switch | 说明 / Meaning |
 | --- | --- |
